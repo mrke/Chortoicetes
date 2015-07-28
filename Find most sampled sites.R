@@ -254,4 +254,4 @@ detach(locustdata98)
 plot(locustsub98$DATE_, locustsub98$NDENS, type='h')
 points(locustsub98$DATE_, locustsub98$Enew/3, col='green',type='p')
 
-
+write.csv(locustdata1,'locustdata_90-09.csv')
