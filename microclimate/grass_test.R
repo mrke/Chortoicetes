@@ -5,7 +5,7 @@ survey_freq<-read.csv('survey_freq_98-09.csv')
 locustdata<-read.csv('locustdata_90-09.csv')
 locustdata$DATE_<-as.POSIXct(locustdata$DATE_,format="%Y-%m-%d")
 ii<-1
-for(ii in 1:20){
+for(ii in 1:50){
   
 ############## location and climatic data  ###################################
 sitemethod <- 0 # 0=specified single site long/lat, 1=place name search using geodis (needs internet)
@@ -224,7 +224,7 @@ for(kk in nodestart:nodefinish){
   root_shallow<-kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
   growth_delay<-1 # days after suitable soil moisture that new growth occurs
   wilting_thresh<-200*-1 # water potential for wilting point J/kg (divide by 100 to get bar)
-  permanent_wilting_point<-1500*-1 # water potential for permanent wilting point J/kg (divide by 100 to get bar)
+  permanent_wilting_point<-1500*-1 # water potential for permanent wilting point (PWP) J/kg (divide by 100 to get bar)
   FoodWater<-82 # water content of fully hydrated veg
   #################################
   
@@ -236,11 +236,11 @@ for(kk in nodestart:nodefinish){
   grassgrowths<-apply(grassgrowths, 1, mean)
   
   grow<-grassgrowths
-  grow[grow>permanent_wilting_point]<-1 # find times when below permanent wilting point
-  grow[grow<=permanent_wilting_point]<-0
+  grow[grow>permanent_wilting_point]<-1 # find times when below the PWP
+  grow[grow<=permanent_wilting_point]<-0 # find times when above the PWP
   counter<-0
   grow2<-grow*0
-  for(j in 1:length(grow)){
+  for(j in 1:length(grow)){ # accumulate runs of days above the permanent wilting point (growth possible)
     if(j==1){
       if(grow[j]==1){
         counter<-counter+1
@@ -256,7 +256,7 @@ for(kk in nodestart:nodefinish){
     }
   }
   grow3<-grow2
-  grow3[grow3<growth_delay]<-0 # use one week in a row as time required for plats to come back after PWP has been hit
+  grow3[grow3<growth_delay]<-0 # apply growth delay specified by the user for time required for plats to come back after PWP has been hit
   grow3[grow3>0]<-1 # make vector of 0 and 1 where 1 means plants could have come back from drought
   
   soilmoist2b<-soilmoist2b[,((root_shallow+3):(3+root_deep))] # get range of depths to take max of
@@ -274,15 +274,20 @@ for(kk in nodestart:nodefinish){
   grassgrowths<-grassgrowths$moist
   grassgrowths[grassgrowths>wilting]<-FoodWater # now have vector of either max plant water content or soil moisture content - need to convert the latter into a smooth decline to zero from max value
   minmoist<-0
-  grassgrowths[grassgrowths<FoodWater]<-(grassgrowths[grassgrowths<FoodWater]-minmoist)/(wilting-minmoist)*FoodWater # for just the values less than max water content, make them equal to the 
-  grassgrowths<-grassgrowths/100*grow3
+  grassgrowths[grassgrowths<FoodWater]<-(grassgrowths[grassgrowths<FoodWater]-minmoist)/(wilting-minmoist)*FoodWater # for just the values less than max water content, make them equal to the ratio of moisture level and wilting point moisture and then multiplied by food water content so have moisture content ranging from max level down to min moisture possible
+  grassgrowths<-grassgrowths/100*grow3 # now convert to proportion and cut out times below PWP (including regrowth penalty)
   grasstsdms<-grassgrowths
   grassmoist<-grassgrowths
   grassmoist<-as.data.frame(cbind(dates2,grassgrowths))
   colnames(grassmoist)<-c('date1','moist')
   grassmoist$date1<-dates2
   grassmoist$moist<-grassmoist$moist/max(grassmoist$moist)*11 # put in units scaling from 0-11
-  
+  # next four lines spread the values out more evenly over 11 categories
+  minval<-min(grassmoist$moist[grassmoist$moist!=0])
+  grassmoist$moist[grassmoist$moist==0]<-minval
+  grassmoist$moist<-grassmoist$moist-minval
+  grassmoist$moist<-grassmoist$moist/max(grassmoist$moist)*11 # put in units scaling from 0-11
+
   #plot plant growth metric against observed plant growth index
   filename<-paste("plant growth test output/perennial roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
   pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
@@ -296,7 +301,7 @@ for(kk in nodestart:nodefinish){
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   #points(locustsub$Enew~locustsub$DATE_,col='red',type='h',lwd=2)
   points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=1)
-  points(rainfall$rainfall/10-1~rainfall$dates,lty=2,type='h',col='light blue')
+  points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
   }
   title(paste("perennial plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
@@ -313,7 +318,7 @@ for(kk in nodestart:nodefinish){
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   points(locustsub$Enew~locustsub$DATE_,col='blue',type='h',lwd=1)
   #points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=1)
-  points(rainfall$rainfall/10-1~rainfall$dates,lty=2,type='h',col='light blue')
+  points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
   }
   title(paste("ephemeral plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
@@ -329,13 +334,13 @@ for(kk in nodestart:nodefinish){
   grassmoist$date<-as.character(grassmoist$date1)
   merge_results_p<-merge(grassmoist,locustsub,by="date")
   merge_results_p<-subset(merge_results_p,PERENnew!='NA')
-  r_peren<-round(cor(merge_results_p$moist,merge_results_p$PERENnew),2)
+  r_peren<-round(cor(round(merge_results_p$moist),merge_results_p$PERENnew,method="spearman"),2)
   plot(merge_results_p$moist~jitter(merge_results_p$PERENnew),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_peren))
   
   merge_results_e<-merge(grassmoist,locustsub,by="date")
   merge_results_e<-subset(merge_results_e,Enew!='NA')
-  r_ephem<-round(cor(merge_results_e$moist,merge_results_e$Enew),2)
+  r_ephem<-round(cor(round(merge_results_e$moist),merge_results_e$Enew,method="spearman"),2)
   plot(merge_results_e$moist~jitter(merge_results_e$Enew),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_ephem))
   dev.off()
