@@ -350,8 +350,8 @@ for(kk in nodestart:nodefinish){
   dev.off()
 
 #if(ii==1 & kk==nodestart){
-  #all_e<-as.data.frame(cbind(DEP[root_deep],merge_results_e))
-  #all_p<-as.data.frame(cbind(DEP[root_deep],merge_results_p))
+  all_e<-as.data.frame(cbind(DEP[root_deep],merge_results_e))
+  all_p<-as.data.frame(cbind(DEP[root_deep],merge_results_p))
   all_r_e<-as.data.frame(cbind(ii,DEP[root_deep],r_ephem))
   all_r_p<-as.data.frame(cbind(ii,DEP[root_deep],r_peren))
 #}else{
@@ -361,8 +361,8 @@ for(kk in nodestart:nodefinish){
 #  all_r_p<-rbind(all_r_p,as.data.frame(cbind(ii,DEP[root_deep],r_peren)))
 #}  
 
-#write.table(all_e,"plant growth test output/all_e.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
-#write.table(all_p,"plant growth test output/all_p.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
+write.table(all_e,"plant growth test output/all_e.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
+write.table(all_p,"plant growth test output/all_p.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
 write.table(all_r_e,"plant growth test output/all_r_e.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
 write.table(all_r_p,"plant growth test output/all_r_p.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
   
