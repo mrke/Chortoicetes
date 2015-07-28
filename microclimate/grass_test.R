@@ -337,7 +337,7 @@ for(kk in nodestart:nodefinish){
   pred<-aggregate(merge_results_p$moist,by=list(merge_results_p$date),FUN=max)
   obser<-aggregate(merge_results_p$PERENnew,by=list(merge_results_p$date),FUN=max)
   r_peren<-round(cor(round(pred$x),obser$x,method="spearman"),2)
-  plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm",sep=""))
+  plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',xlim=c(0,11),ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_peren))
   
   merge_results_e<-merge(grassmoist,locustsub,by="date")
@@ -345,7 +345,7 @@ for(kk in nodestart:nodefinish){
   pred<-aggregate(merge_results_e$moist,by=list(merge_results_e$date),FUN=max)
   obser<-aggregate(merge_results_e$Enew,by=list(merge_results_e$date),FUN=max)
   r_ephem<-round(cor(round(pred$x),obser$x,method="spearman"),2)
-  plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
+  plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',xlim=c(0,11),ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_ephem))
   dev.off()
 
