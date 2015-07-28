@@ -325,13 +325,13 @@ for(kk in 3:9){
   merge_results_p<-merge(grassmoist,locustsub,by="date")
   merge_results_p<-subset(merge_results_p,PERENnew!='NA')
   r_peren<-round(cor(merge_results_p$moist,merge_results_p$PERENnew),2)
-  plot(merge_results_p$moist~jitter(merge_results_p$PERENnew),ylab='predicted greeness',xlab='observed greeness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm ",sep=""))
+  plot(merge_results_p$moist~jitter(merge_results_p$PERENnew),ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm ",sep=""))
   text(3,8,paste("r=",r_peren))
   
   merge_results_e<-merge(grassmoist,locustsub,by="date")
   merge_results_e<-subset(merge_results_e,Enew!='NA')
   r_ephem<-round(cor(merge_results_e$moist,merge_results_e$Enew),2)
-  plot(merge_results_e$moist~jitter(merge_results_e$Enew),ylab='predicted greeness',xlab='observed greeness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm ",sep=""))
+  plot(merge_results_e$moist~jitter(merge_results_e$Enew),ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm ",sep=""))
   text(3,8,paste("r=",r_ephem))
   dev.off()
 
