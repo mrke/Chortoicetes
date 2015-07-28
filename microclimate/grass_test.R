@@ -213,7 +213,12 @@ locustsub<-locustdata[(long == longlat[1])&(lat==longlat[2]),]
 detach(locustdata)
 locustsub$date<-as.character(locustsub$DATE_,format="%Y-%m-%d")
 
-for(kk in 3:9){
+#locustsub$Enew[is.na(locustsub$PERENnew)==FALSE & is.na(locustsub$Enew)==TRUE] <- 0 # assume that if perennials are observed and no data for ephemerals, then no ephemerals 
+#locustsub$PERENnew[is.na(locustsub$Enew)==FALSE & is.na(locustsub$PERENnew)==TRUE] <- 0 # assume that if ephemerals are observed and no data for perennials, then no perennials
+  
+nodestart<-3
+nodefinish<-9
+for(kk in nodestart:nodefinish){
   ##################### parameters:
   root_deep<-kk#6 # how deep do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
   root_shallow<-kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
@@ -279,7 +284,7 @@ for(kk in 3:9){
   grassmoist$moist<-grassmoist$moist/max(grassmoist$moist)*11 # put in units scaling from 0-11
   
   #plot plant growth metric against observed plant growth index
-  filename<-paste("plant growth test output/perennial year ",yr," roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days.pdf",sep="")
+  filename<-paste("plant growth test output/perennial roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
   pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
   par(mfrow = c(6,2)) # set up for 12 plots in 2 columns
   par(oma = c(2,2,2,2) + 0.1) # margin spacing stuff
@@ -291,12 +296,12 @@ for(kk in 3:9){
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   #points(locustsub$Enew~locustsub$DATE_,col='red',type='h',lwd=2)
   points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=1)
-  points(rainfall$rainfall/10~rainfall$dates,lty=2,type='h',col='light blue')
+  points(rainfall$rainfall/10-1~rainfall$dates,lty=2,type='h',col='light blue')
   }
-  title(paste("perennial plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days",sep=""),outer=TRUE)
+  title(paste("perennial plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
   
-  filename<-paste("plant growth test output/ephemeral year ",yr," roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",i,".pdf",sep="")
+  filename<-paste("plant growth test output/ephemeral roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
   pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
   par(mfrow = c(6,2)) # set up for 12 plots in 2 columns
   par(oma = c(2,2,2,2) + 0.01) # margin spacing stuff
@@ -308,12 +313,12 @@ for(kk in 3:9){
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   points(locustsub$Enew~locustsub$DATE_,col='blue',type='h',lwd=1)
   #points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=1)
-  points(rainfall$rainfall/10~rainfall$dates,lty=2,type='h',col='light blue')
+  points(rainfall$rainfall/10-1~rainfall$dates,lty=2,type='h',col='light blue')
   }
-  title(paste("ephemeral plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days ",longlat[1]," ",longlat[2],sep=""),outer=TRUE)
+  title(paste("ephemeral plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
   
-  filename<-paste("plant growth test output/correl roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",i,".pdf",sep="")
+  filename<-paste("plant growth test output/correl roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
   pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
   par(mfrow = c(2,1)) # set up for 12 plots in 2 columns
   par(oma = c(2,2,2,2) + 1) # margin spacing stuff
@@ -325,29 +330,31 @@ for(kk in 3:9){
   merge_results_p<-merge(grassmoist,locustsub,by="date")
   merge_results_p<-subset(merge_results_p,PERENnew!='NA')
   r_peren<-round(cor(merge_results_p$moist,merge_results_p$PERENnew),2)
-  plot(merge_results_p$moist~jitter(merge_results_p$PERENnew),ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm ",sep=""))
+  plot(merge_results_p$moist~jitter(merge_results_p$PERENnew),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_peren))
   
   merge_results_e<-merge(grassmoist,locustsub,by="date")
   merge_results_e<-subset(merge_results_e,Enew!='NA')
   r_ephem<-round(cor(merge_results_e$moist,merge_results_e$Enew),2)
-  plot(merge_results_e$moist~jitter(merge_results_e$Enew),ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm ",sep=""))
+  plot(merge_results_e$moist~jitter(merge_results_e$Enew),col='blue',ylab='predicted greenness',xlab='observed greenness',ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_ephem))
   dev.off()
 
+if(ii==1 & kk==nodestart){
+  all_e<-as.data.frame(cbind(DEP[root_deep],merge_results_e))
+  all_p<-as.data.frame(cbind(DEP[root_deep],merge_results_p))
+  all_r_e<-as.data.frame(cbind(ii,DEP[root_deep],r_ephem))
+  all_r_p<-as.data.frame(cbind(ii,DEP[root_deep],r_peren))
+}else{
+  all_e<-rbind(all_e,as.data.frame(cbind(DEP[root_deep],merge_results_e)))
+  all_p<-rbind(all_p,as.data.frame(cbind(DEP[root_deep],merge_results_p)))
+  all_r_e<-rbind(all_r_e,as.data.frame(cbind(ii,DEP[root_deep],r_ephem)))
+  all_r_p<-rbind(all_r_p,as.data.frame(cbind(ii,DEP[root_deep],r_peren)))
+}  
+  
 } # end loop through grass model params
 
-if(ii==1){
-  all_e<-merge_results_e
-  all_p<-merge_results_p
-  all_r_e<-r_ephem
-  all_r_p<-r_peren
-}else{
-  all_e<-rbind(all_e,merge_results_e)
-  all_p<-rbind(all_p,merge_results_p)
-  all_r_e<-c(all_r_e,r_ephem)
-  all_r_p<-c(all_r_p,r_peren)
-}
+
 
 } # end loop through sites
 
@@ -469,16 +476,16 @@ points(rainfall$rainfall~rainfall$dates,type='h',col='dark blue')
 # points(plothumid$dates, plothumid[,12]*100,type='l',col = 10,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
 # points(plothumid$dates, plothumid[,13]*100,type='l',col = 11,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
 # 
-# plot(plotsoilpot$dates, plotsoilpot[,4],type='l',col = "red",lty=1,ylim = c(-5000,0),ylab='water potential (J/kg)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,5],type='l',col = 3,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,6],type='l',col = 4,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,7],type='l',col = 5,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,8],type='l',col = 6,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,9],type='l',col = 7,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,10],type='l',col = 8,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,11],type='l',col = 9,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,12],type='l',col = 10,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
-# points(plotsoilpot$dates, plotsoilpot[,13],type='l',col = 11,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+plot(plotsoilpot$dates, plotsoilpot[,4],type='l',col = "red",lty=1,ylim = c(-5000,0),ylab='water potential (J/kg)',xlab='date')
+plot(plotsoilpot$dates, plotsoilpot[,5],type='l',col = 3,lty=1,ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,6],type='l',col = 4,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,7],type='l',col = 5,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,8],type='l',col = 6,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,9],type='l',col = 7,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,10],type='l',col = 8,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,11],type='l',col = 9,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,12],type='l',col = 10,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
+points(plotsoilpot$dates, plotsoilpot[,13],type='l',col = 11,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
 # 
 # plot(plotsoil$dates, plotsoil[,4],type='l',col = "red",lty=1,ylim = c(-10,80),ylab='temperature (C)',xlab='date')
 # points(plotsoil$dates, plotsoil[,5],type='l',col = 3,lty=1,ylim = c(0,50),ylab='relative humdity (%)',xlab='date')
