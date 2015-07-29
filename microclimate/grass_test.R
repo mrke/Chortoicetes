@@ -5,7 +5,7 @@ survey_freq<-read.csv('survey_freq_98-09.csv')
 locustdata<-read.csv('locustdata_90-09.csv')
 locustdata$DATE_<-as.POSIXct(locustdata$DATE_,format="%Y-%m-%d")
 ii<-1
-for(ii in 1:50){
+for(ii in 34:50){
   
 ############## location and climatic data  ###################################
 sitemethod <- 0 # 0=specified single site long/lat, 1=place name search using geodis (needs internet)
@@ -336,7 +336,7 @@ for(kk in nodestart:nodefinish){
   merge_results_p<-subset(merge_results_p,PERENnew!='NA')
   pred<-aggregate(merge_results_p$moist,by=list(merge_results_p$date),FUN=max)
   obser<-aggregate(merge_results_p$PERENnew,by=list(merge_results_p$date),FUN=max)
-  r_peren<-round(cor(round(pred$x),obser$x,method="spearman"),2)
+  r_peren<-round(cor(round(pred$x),obser$x,method="spearman"),4)
   plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',xlim=c(0,11),ylim=c(0,11),main=paste("perennial plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_peren))
   
@@ -344,7 +344,7 @@ for(kk in nodestart:nodefinish){
   merge_results_e<-subset(merge_results_e,Enew!='NA')
   pred<-aggregate(merge_results_e$moist,by=list(merge_results_e$date),FUN=max)
   obser<-aggregate(merge_results_e$Enew,by=list(merge_results_e$date),FUN=max)
-  r_ephem<-round(cor(round(pred$x),obser$x,method="spearman"),2)
+  r_ephem<-round(cor(round(pred$x),obser$x,method="spearman"),4)
   plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',xlim=c(0,11),ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_ephem))
   dev.off()
@@ -373,7 +373,17 @@ write.table(all_r_p,"plant growth test output/all_r_p.csv",sep=",",append=TRUE,r
 } # end loop through sites
 
 
+all_r_e<-read.csv('plant growth test output/all_r_e.csv')
+all_r_p<-read.csv('plant growth test output/all_r_p.csv')
+colnames(all_r_e)<-c('site','dep','r')
+colnames(all_r_p)<-c('site','dep','r')
 
+agg_r_e<-merge(aggregate(r ~ site, data = all_r_e, FUN = max,na.rm=TRUE), all_r_e)
+agg_r_p<-merge(aggregate(r ~ site, data = all_r_p, FUN = max,na.rm=TRUE), all_r_p)
+agg_r_e<-agg_r_e[order(agg_r_e$site),]
+agg_r_p<-agg_r_p[order(agg_r_p$site),]
+require(plyr)
+ddply(all_r_e,.(site,dep),summarise,r = max(r))
 
 # #plot for earlier years, with just text code for grass condition for now, per year
 # for(yr in 1990:1997){
