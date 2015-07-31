@@ -1,4 +1,4 @@
-
+require(plyr)
 spatial<-"c:/Australian Environment/" # place where climate input files are kept
 maindir<-getwd()
 survey_freq<-read.csv('survey_freq_98-09.csv')
@@ -555,12 +555,12 @@ locustsub$date<-as.character(locustsub$DATE_,format="%Y-%m-%d")
 #locustsub$Enew[is.na(locustsub$PERENnew)==FALSE & is.na(locustsub$Enew)==TRUE] <- 0 # assume that if perennials are observed and no data for ephemerals, then no ephemerals 
 #locustsub$PERENnew[is.na(locustsub$Enew)==FALSE & is.na(locustsub$PERENnew)==TRUE] <- 0 # assume that if ephemerals are observed and no data for perennials, then no perennials
   
-nodestart<-3
-nodefinish<-8
+nodestart<-4
+nodefinish<-9
 for(kk in nodestart:nodefinish){
   ##################### parameters:
   root_deep<-kk#6 # how deep do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
-  root_shallow<-kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
+  root_shallow<-3#kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
   growth_delay<-1 # days after suitable soil moisture that new growth occurs
   wilting_thresh<-200*-1 # water potential for wilting point J/kg (divide by 100 to get bar)
   permanent_wilting_point<-1500*-1 # water potential for permanent wilting point (PWP) J/kg (divide by 100 to get bar)
@@ -572,7 +572,7 @@ for(kk in nodestart:nodefinish){
   #soilmoist2b<-subset(soilmoist2b,TIME==720)
   #grassgrowths<-subset(grassgrowths,TIME==720)
   grassgrowths<-grassgrowths[,((root_shallow+3):(3+root_deep))] # get range of depths to take max of
-  grassgrowths<-apply(grassgrowths, 1, mean)
+  grassgrowths<-apply(grassgrowths, 1, max)
   
   grow<-grassgrowths
   grow[grow>permanent_wilting_point]<-1 # find times when below the PWP
@@ -1015,20 +1015,21 @@ stagefreq<-rep(0,nrow(DATA1)*length(stagefreqnames))
 dim(stagefreq)<-c(nrow(DATA1),length(stagefreqnames))
 
 
-for(g in 1:100){
+for(g in 1:30){
   if(g==1){
     hatchings<-gethatch(ovirows, stagefreq)
     hatchdates<-hatchings$hatchdates 
     generations<-getgen(hatchdates, hatchings$stagefreq)
-    reprodates<-generations$reprodates
+    reprodates<-generations$reprodates[generations$reprodates<nrow(generations$stagefreq)] # make sure not going beyond time series
     reprodates1<-reprodates
     gens<-generations$gens
   }else{
     if(length(reprodates)>0){
       hatchings<-gethatch(cbind(0,reprodates),generations$stagefreq)
       hatchdates<-hatchings$hatchdates
+      hatchdates<-hatchdates[!duplicated(hatchdates)]
       generations<-getgen(hatchdates, generations$stagefreq)
-      reprodates<-generations$reprodates
+      reprodates<-generations$reprodates[generations$reprodates<nrow(generations$stagefreq)] # make sure not going beyond time series
       gens<-generations$gens
     }else{
       break
@@ -1071,21 +1072,41 @@ stagefreqDF_agg<-aggregate(stagefreqDF[,2:14],by=list(format(dates,'%Y-%m-%d')),
 colnames(stagefreqDF_agg)[1]<-'date'
 
 stagefreqDF_agg$nymphs<-rowSums(stagefreqDF_agg[,9:12]) # exclude 1st instars as they may have just hatched and died if no food
-plot(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='l')
-plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
 
+  filename<-paste("plant growth test output/time series ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
+  pdf(filename,paper="A4r",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
+  par(mfrow = c(3,1)) # set up for 12 plots in 2 columns
+  par(oma = c(2,2,2,2) + 1) # margin spacing stuff
+  par(mar = c(3,3,1,1) + 1) # margin spacing stuff 
+  par(mgp = c(3,1,0) ) # margin spacing stuff   
+plot(stagefreqDF_agg$nymphs/max(stagefreqDF_agg$nymphs)*8~as.POSIXct(stagefreqDF_agg$date),type='l',ylim=c(0,8),ylab="nymph density",xlab="")
+points(grassmoist$moist/max(grassmoist$moist)*3~grassmoist$date1,type='h',col="darkolivegreen2")  
+points(locustsub$NDENS~locustsub$DATE_,type='h',col='orange',lwd=2)  
+points(stagefreqDF_agg$nymphs/max(stagefreqDF_agg$nymphs)*8~as.POSIXct(stagefreqDF_agg$date),type='l')
+  
+plot(stagefreqDF_agg$Adult/max(stagefreqDF_agg$Adult)*8~as.POSIXct(stagefreqDF_agg$date),type='l',ylim=c(0,8),ylab="adult density",xlab="")
+points(grassmoist$moist/max(grassmoist$moist)*3~grassmoist$date1,type='h',col="darkolivegreen2")  
+points(locustsub$ADENS~locustsub$DATE_,type='h',col='orange',lwd=2)  
+points(stagefreqDF_agg$Adult/max(stagefreqDF_agg$Adult)*8~as.POSIXct(stagefreqDF_agg$date),type='l')
+  
+plot((stagefreqDF_agg$Adult+stagefreqDF_agg$nymphs)/max(stagefreqDF_agg$Adult+stagefreqDF_agg$nymphs)*8~as.POSIXct(stagefreqDF_agg$date),type='l',ylim=c(0,8),ylab="adult and nymph density",xlab="")
+points(grassmoist$moist/max(grassmoist$moist)*3~grassmoist$date1,type='h',col="darkolivegreen2")  
+points(locustsub$ADENS~locustsub$DATE_,type='h',col='orange',lwd=2)  
+points((stagefreqDF_agg$Adult+stagefreqDF_agg$nymphs)/max(stagefreqDF_agg$Adult+stagefreqDF_agg$nymphs)*8~as.POSIXct(stagefreqDF_agg$date),type='l')  
+title(paste("lat/long ",longlat[2],",",longlat[1],sep=""))
+  dev.off()
   
   
   
   #plot plant growth metric against observed plant growth index
-  filename<-paste("plant growth test output/perennial roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,".pdf",sep="")
+  filename<-paste("plant growth test output/perennial roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,"_1990_1999.pdf",sep="")
   pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
-  par(mfrow = c(6,2)) # set up for 12 plots in 2 columns
+  par(mfrow = c(5,2)) # set up for 12 plots in 2 columns
   par(oma = c(2,2,2,2) + 0.1) # margin spacing stuff
   par(mar = c(3,3,1,1) + 0.1) # margin spacing stuff 
   par(mgp = c(3,1,0) ) # margin spacing stuff 
   
-  for(yr in 1998:2009){
+  for(yr in 1990:1999){
   plotgrassmoist<-subset(grassmoist,as.numeric(format(grassmoist$date1, "%Y"))==yr)
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   points(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='h',col='orange')
@@ -1095,7 +1116,31 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   #points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
   points(locustsub$NDENS~as.POSIXct(locustsub$DATE_), type='p',col='black',pch=16,cex=2)
   points(locustsub$ADENS~as.POSIXct(locustsub$DATE_), type='p',col='grey',pch=16)  
+  points(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
+
+  }
+  title(paste("perennial plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
+  dev.off()
   
+    #plot plant growth metric against observed plant growth index
+  filename<-paste("plant growth test output/perennial roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days site ",ii,"_2000_2009.pdf",sep="")
+  pdf(filename,paper="A4",width=15,height=11) # doing this means you're going to make a pdf - comment this line out if you want to see them in R
+  par(mfrow = c(5,2)) # set up for 12 plots in 2 columns
+  par(oma = c(2,2,2,2) + 0.1) # margin spacing stuff
+  par(mar = c(3,3,1,1) + 0.1) # margin spacing stuff 
+  par(mgp = c(3,1,0) ) # margin spacing stuff 
+  
+  for(yr in 2000:2009){
+  plotgrassmoist<-subset(grassmoist,as.numeric(format(grassmoist$date1, "%Y"))==yr)
+  plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
+  points(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='h',col='orange')
+  points(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='h',col='red',lty=2)  
+  #points(locustsub$Enew~locustsub$DATE_,col='red',type='h',lwd=2)
+  points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=2)
+  #points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
+  points(locustsub$NDENS~as.POSIXct(locustsub$DATE_), type='p',col='black',pch=16,cex=2)
+  points(locustsub$ADENS~as.POSIXct(locustsub$DATE_), type='p',col='grey',pch=16)  
+  points(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
   }
   title(paste("perennial plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
@@ -1128,6 +1173,7 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   par(mar = c(3,3,1,1) + 1) # margin spacing stuff 
   par(mgp = c(3,1,0) ) # margin spacing stuff 
   
+
   
   grassmoist$date<-as.character(as.Date(grassmoist$date1,format="%Y-%m-%h"))
   merge_results_p<-merge(grassmoist,locustsub,by="date")
@@ -1148,15 +1194,26 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
 
   
   stagefreqDF_agg$date1<-stagefreqDF_agg$date
-  locustsub$date1<-as.character(locustsub$DATE_,format="%Y-%m-%d")
-  merge_results<-merge(stagefreqDF_agg,locustsub,by="date1")
-  r_nymphs<-round(cor(merge_results$nymphs,merge_results$NDENS),2)
-  r_adults<-round(cor(merge_results$Adult,merge_results$ADENS),2)
-  plot(merge_results$nymphs~merge_results$NDENS,col='blue',ylab='predicted nymphs',xlab='observed nymphs',main='nymphs')
-  text(min(min(merge_results$nymphs,merge_results$NDENS))+1*1.2,max(max(merge_results$nymphs,merge_results$NDENS))*.75,paste("r=",r_nymphs))
-  plot(merge_results$Adult~merge_results$ADENS,col='blue',ylab='predicted adults',xlab='observed adults',main='adults')
-  text(min(min(merge_results$Adult,merge_results$ADENS))+1*1.2,max(max(merge_results$Adult,merge_results$ADENS))*.75,paste("r=",r_adults))
-  
+  stagefreqDF_agg$locusts_pred<-stagefreqDF_agg$nymphs+stagefreqDF_agg$Adult
+  locustsub$locusts_obs<-locustsub$NDENS+locustsub$ADENS
+  locustsub_nymphs<-ddply(locustsub,.(date),summarise,NDENS = max(NDENS))
+  colnames(locustsub_nymphs)[1]<-'date1'
+  locustsub_locusts<-ddply(locustsub,.(date),summarise,locusts_obs = max(locusts_obs))
+  colnames(locustsub_locusts)[1]<-'date1'  
+  locustsub_adults<-ddply(locustsub,.(date),summarise,ADENS = max(ADENS))
+  colnames(locustsub_adults)[1]<-'date1'
+  merge_results_n<-merge(stagefreqDF_agg,locustsub_nymphs,by="date1")
+  merge_results_a<-merge(stagefreqDF_agg,locustsub_adults,by="date1")
+  merge_results_l<-merge(stagefreqDF_agg,locustsub_locusts,by="date1")
+  r_nymphs<-round(cor(merge_results_n$nymphs,merge_results_n$NDENS),3)
+  r_adults<-round(cor(merge_results_a$Adult,merge_results_a$ADENS),3)
+  r_locusts<-round(cor(merge_results_l$locusts_pred,merge_results_l$locusts_obs),3)
+  plot(merge_results_n$nymphs~jitter(merge_results_n$NDENS),col='blue',ylab='predicted nymphs',xlab='observed nymphs',main='nymphs')
+  text(min(merge_results_n$NDENS)+1*1.2,max(merge_results_n$nymphs)*.75,paste("r=",r_nymphs))
+  plot(merge_results_a$Adult~jitter(merge_results_a$ADENS),col='blue',ylab='predicted adults',xlab='observed adults',main='adults')
+  text(min(merge_results_a$ADENS)+1*1.2,max(merge_results_a$Adult)*.75,paste("r=",r_adults))
+  plot(merge_results_l$locusts_pred~jitter(merge_results_l$locusts_obs),col='blue',ylab='predicted locusts',xlab='observed locusts',main='adults')
+  text(min(merge_results_l$locusts_obs)+1*1.2,max(merge_results_l$locusts_pred)*.75,paste("r=",r_locusts))
   dev.off()
   
 #if(ii==1 & kk==nodestart){
@@ -1198,7 +1255,6 @@ agg_r_e<-merge(aggregate(r ~ site, data = all_r_e, FUN = max,na.rm=TRUE), all_r_
 agg_r_p<-merge(aggregate(r ~ site, data = all_r_p, FUN = max,na.rm=TRUE), all_r_p)
 agg_r_e<-agg_r_e[order(agg_r_e$site),]
 agg_r_p<-agg_r_p[order(agg_r_p$site),]
-require(plyr)
 ddply(all_r_e,.(site,dep),summarise,r = max(r))
 
 # #plot for earlier years, with just text code for grass condition for now, per year
