@@ -17,7 +17,7 @@ dailywind<-1 # use daily windspeed database?
 terrain<-0 # include terrain (slope, aspect, horizon angles) (1) or not (0)?
 soildata<-1 # include soil data for Australia (1) or not (0)?
 snowmodel<-0 # run snow version? (slower!)
-ystart<-1998
+ystart<-1990
 yfinish<-2009
 nyears<-yfinish-ystart+1# integer, number of years for which to run the microclimate model, only for AWAP data (!!max 10 years!!)
 
@@ -226,7 +226,7 @@ ystart<-read.csv(paste(microin,'ectoin.csv',sep=""))[7,2]
 yfinish<-read.csv(paste(microin,'ectoin.csv',sep=""))[8,2]
 nyears<-ceiling(nrow(read.csv(paste(microin,'rainfall.csv',sep="")))/365) # number of years the simulation runs for (work out from input data)
 write_input<-0 # write input into 'csv input' folder? (1 yes, 0 no)
-longlat<-c(read.csv(paste(microin,'ectoin.csv')[3,2],read.csv('ectoin.csv',sep=""))[4,2])
+#longlat<-c(read.csv(paste(microin,'ectoin.csv')[3,2],read.csv('ectoin.csv',sep=""))[4,2])
 grasshade<-0 # use grass shade values from microclimate model as min shade values (1) or not (0)? (simulates effect of grass growth on shading, as a function of soil moisture)
 basic<-0
 shore<-0
@@ -525,20 +525,22 @@ if(container==1){
 }
   
 
-environ<-cbind(dates,environ)
+
+  
+  
+tzone<-paste("Etc/GMT-",10,sep="") # doing it this way ignores daylight savings!
+dates<-seq(ISOdate(ystart,1,1,tz=tzone)-3600*12, ISOdate((ystart+nyears),1,1,tz=tzone)-3600*13, by="hours")
+dates<-subset(dates, format(dates, "%m/%d")!= "02/29") # remove leap years
+  
+  environ<-cbind(dates,environ)
 masbal<-cbind(dates,masbal)
 enbal<-cbind(dates,enbal)
 soil<-cbind(dates,soil)
 metout<-cbind(dates,metout)
 shadsoil<-cbind(dates,shadsoil)
 shadmet<-cbind(dates,shadmet)
-
   
   
-  
-tzone<-paste("Etc/GMT-",10,sep="") # doing it this way ignores daylight savings!
-dates<-seq(ISOdate(ystart,1,1,tz=tzone)-3600*12, ISOdate((ystart+nyears),1,1,tz=tzone)-3600*13, by="hours")
-dates<-subset(dates, format(dates, "%m/%d")!= "02/29") # remove leap years
 dates2<-seq(ISOdate(ystart,1,1,tz=tzone)-3600*12, ISOdate((ystart+nyears),1,1,tz=tzone)-3600*13, by="days") 
 dates2<-subset(dates2, format(dates2, "%m/%d")!= "02/29") # remove leap years
 rainfall<-as.data.frame(cbind(dates2,rainfall))
@@ -554,7 +556,7 @@ locustsub$date<-as.character(locustsub$DATE_,format="%Y-%m-%d")
 #locustsub$PERENnew[is.na(locustsub$Enew)==FALSE & is.na(locustsub$PERENnew)==TRUE] <- 0 # assume that if ephemerals are observed and no data for perennials, then no perennials
   
 nodestart<-3
-nodefinish<-9
+nodefinish<-8
 for(kk in nodestart:nodefinish){
   ##################### parameters:
   root_deep<-kk#6 # how deep do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
@@ -636,7 +638,7 @@ for(kk in nodestart:nodefinish){
   
   
   
-recover<-2 # time locust needs to build up resources to lay first batch
+recover<-1 # time locust needs to build up resources to lay first batch
 ovidates<-as.data.frame(cbind(grass2[1:(length(grass2)-1)],grass2[2:length(grass2)]))
 ovidates<-cbind(dates[2:length(dates)],ovidates)
 ovdiates2<-subset(ovidates, V1-V2==-1)
@@ -787,6 +789,7 @@ gethatch<-function(ovirows, stagefreq1){
               stagefreq1[i,Diapausecol]<-stagefreq1[i,Diapausecol]+1
         }
         # nor in diapause  (cold_hours <720, diapuase = 1, and 45% dev) 
+        if(i>1){ # check that isn't first position in vector
         if(!(egg$Q1||egg$Q2||egg$in_diapause)){
           # increment development at a 0.08 increase rate per day at 32C or use temp correct factor
           egg$dev <- dev[i-1] + devrate(egg$temp[i]) 
@@ -795,6 +798,7 @@ gethatch<-function(ovirows, stagefreq1){
           # else in diapause/quiescent, so do not increment 
         } else{  egg$dev <- dev[i-1]
         }  
+        }
         
         # if development complete, record hatch date  
         if(egg$dev>0.99){
@@ -1084,8 +1088,8 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   for(yr in 1998:2009){
   plotgrassmoist<-subset(grassmoist,as.numeric(format(grassmoist$date1, "%Y"))==yr)
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
-  points(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='l',col='orange')
-  points(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l',col='red')  
+  points(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='h',col='orange')
+  points(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='h',col='red',lty=2)  
   #points(locustsub$Enew~locustsub$DATE_,col='red',type='h',lwd=2)
   points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=2)
   #points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
@@ -1106,9 +1110,13 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   for(yr in 1998:2009){
   plotgrassmoist<-subset(grassmoist,as.numeric(format(grassmoist$date1, "%Y"))==yr)
   plot(plotgrassmoist$moist~plotgrassmoist$date1,type='l',col='dark green',main=yr,ylim=c(0,11))
+  points(stagefreqDF_agg$nymphs~as.POSIXct(stagefreqDF_agg$date),type='h',col='orange')
+  points(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='h',col='red',lty=2)     
   points(locustsub$Enew~locustsub$DATE_,col='blue',type='h',lwd=1)
   #points(locustsub$PERENnew~locustsub$DATE_,col='blue',type='h',lwd=1)
-  points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
+  #points(rainfall$rainfall/10~rainfall$dates,lty=1,type='h',col='light blue')
+  points(locustsub$NDENS~as.POSIXct(locustsub$DATE_), type='p',col='black',pch=16,cex=2)
+  points(locustsub$ADENS~as.POSIXct(locustsub$DATE_), type='p',col='grey',pch=16)  
   }
   title(paste("ephemeral plants, roots ",DEP[root_deep]," cm regrow thresh ",growth_delay," days, lat/long ",longlat[2],",",longlat[1],sep=""),outer=TRUE)
   dev.off()
@@ -1121,7 +1129,7 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   par(mgp = c(3,1,0) ) # margin spacing stuff 
   
   
-  grassmoist$date<-as.character(grassmoist$date1)
+  grassmoist$date<-as.character(as.Date(grassmoist$date1,format="%Y-%m-%h"))
   merge_results_p<-merge(grassmoist,locustsub,by="date")
   merge_results_p<-subset(merge_results_p,PERENnew!='NA')
   pred<-aggregate(merge_results_p$moist,by=list(merge_results_p$date),FUN=max)
@@ -1137,23 +1145,28 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
   r_ephem<-round(cor(round(pred$x),obser$x,method="spearman"),4)
   plot(pred$x~jitter(obser$x),col='blue',ylab='predicted greenness',xlab='observed greenness',xlim=c(0,11),ylim=c(0,11),main=paste("ephemeral plants, roots ",DEP[root_deep]," cm",sep=""))
   text(3,8,paste("r=",r_ephem))
-  dev.off()
+
   
   stagefreqDF_agg$date1<-stagefreqDF_agg$date
   locustsub$date1<-as.character(locustsub$DATE_,format="%Y-%m-%d")
   merge_results<-merge(stagefreqDF_agg,locustsub,by="date1")
   r_nymphs<-round(cor(merge_results$nymphs,merge_results$NDENS),2)
   r_adults<-round(cor(merge_results$Adult,merge_results$ADENS),2)
-  plot(merge_results$nymphs~merge_results$NDENS,col='blue',ylab='predicted nymphs',xlab='observed nymphs')
-  text(3,8,paste("r=",r_nymphs))
-  plot(merge_results$Adult~merge_results$ADENS,col='blue',ylab='predicted adults',xlab='observed adults')
-  text(3,8,paste("r=",r_adults))
+  plot(merge_results$nymphs~merge_results$NDENS,col='blue',ylab='predicted nymphs',xlab='observed nymphs',main='nymphs')
+  text(min(min(merge_results$nymphs,merge_results$NDENS))+1*1.2,max(max(merge_results$nymphs,merge_results$NDENS))*.75,paste("r=",r_nymphs))
+  plot(merge_results$Adult~merge_results$ADENS,col='blue',ylab='predicted adults',xlab='observed adults',main='adults')
+  text(min(min(merge_results$Adult,merge_results$ADENS))+1*1.2,max(max(merge_results$Adult,merge_results$ADENS))*.75,paste("r=",r_adults))
+  
+  dev.off()
   
 #if(ii==1 & kk==nodestart){
   all_e<-as.data.frame(cbind(DEP[root_deep],merge_results_e))
   all_p<-as.data.frame(cbind(DEP[root_deep],merge_results_p))
+  all_l<-as.data.frame(cbind(DEP[root_deep],merge_results))
   all_r_e<-as.data.frame(cbind(ii,DEP[root_deep],r_ephem))
   all_r_p<-as.data.frame(cbind(ii,DEP[root_deep],r_peren))
+  all_r_n<-as.data.frame(cbind(ii,DEP[root_deep],r_nymphs))
+  all_r_a<-as.data.frame(cbind(ii,DEP[root_deep],r_adults))
 #}else{
   #all_e<-rbind(all_e,as.data.frame(cbind(DEP[root_deep],merge_results_e)))
   #all_p<-rbind(all_p,as.data.frame(cbind(DEP[root_deep],merge_results_p)))
@@ -1163,9 +1176,12 @@ plot(stagefreqDF_agg$Adult~as.POSIXct(stagefreqDF_agg$date),type='l')
 
 write.table(all_e,"plant growth test output/all_e.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
 write.table(all_p,"plant growth test output/all_p.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
+write.table(all_l,"plant growth test output/all_l.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
 write.table(all_r_e,"plant growth test output/all_r_e.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
 write.table(all_r_p,"plant growth test output/all_r_p.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
-  
+write.table(all_r_n,"plant growth test output/all_r_n.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
+write.table(all_r_a,"plant growth test output/all_r_a.csv",sep=",",append=TRUE,row.names=FALSE,col.names=FALSE)
+
 } # end loop through grass model params
 
 
