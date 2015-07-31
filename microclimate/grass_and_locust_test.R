@@ -5,7 +5,7 @@ survey_freq<-read.csv('survey_freq_98-09.csv')
 locustdata<-read.csv('locustdata_90-09.csv')
 locustdata$DATE_<-as.POSIXct(locustdata$DATE_,format="%Y-%m-%d")
 ii<-1
-for(ii in 34:50){
+for(ii in 1:50){
   
 ############## location and climatic data  ###################################
 sitemethod <- 0 # 0=specified single site long/lat, 1=place name search using geodis (needs internet)
@@ -625,7 +625,9 @@ for(kk in nodestart:nodefinish){
   grassmoist$moist<-grassmoist$moist-minval
   grassmoist$moist<-grassmoist$moist/max(grassmoist$moist)*11 # put in units scaling from 0-11
   grassmoist2<-grassmoist
+  #grassmoist2$moist[grassmoist2$moist<1]<-0
   grassmoist2$moist[grassmoist2$moist>0]<-1
+
   grass2<-grassmoist2$moist
   grassmoist<-subset(grassmoist, format(grassmoist$date1,"%H")=="12")
   
@@ -634,7 +636,7 @@ for(kk in nodestart:nodefinish){
   
   
   
-recover<-7 # time locust needs to build up resources to lay first batch
+recover<-2 # time locust needs to build up resources to lay first batch
 ovidates<-as.data.frame(cbind(grass2[1:(length(grass2)-1)],grass2[2:length(grass2)]))
 ovidates<-cbind(dates[2:length(dates)],ovidates)
 ovdiates2<-subset(ovidates, V1-V2==-1)
