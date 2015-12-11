@@ -7,18 +7,28 @@ locustdata$DATE_<-as.POSIXct(locustdata$DATE_,format="%Y-%m-%d")
 ii<-1
 for(ii in 1:50){
   
+######################### model modes ###########################################################
+mac<-0 # choose mac (1) or pc (0) 
+writecsv<-0 # make Fortran code write output as csv files
+write_input<-0 # write csv files of final input to working directory? 1=yes, 0=no.
+runshade<-1 # run the model twice, once for each shade level (1) or just for the first shade level (0)?
+runmoist<-1 # run soil moisture model (0=no, 1=yes)?
+snowmodel<-0 # run the snow model (0=no, 1=yes)? - note that this runs slower
+shore<-0 # include tide effects (if 0, an empty matrix of tide effects is created)
+rungads<-1 # use the Global Aerosol Database?
+#########################################################################################################
+
 ############## location and climatic data  ###################################
+spatial<-"c:/Australian Environment/" # place where climate input files are kept
 sitemethod <- 0 # 0=specified single site long/lat, 1=place name search using geodis (needs internet)
 longlat<-c(survey_freq[ii,2],survey_freq[ii,3]) # type a long/lat here in decimal degrees
 loc <- "Broken Hill, Australia" # type in a location here, used if option 1 is chosen above
 timezone<-0 # if timezone=1 (needs internet), uses GNtimezone function in package geonames to correct to local time zone (excluding daylight saving correction)
-rungads<-1 # use the Global Aerosol Database?
 dailywind<-1 # use daily windspeed database?
 terrain<-0 # include terrain (slope, aspect, horizon angles) (1) or not (0)?
 soildata<-1 # include soil data for Australia (1) or not (0)?
-snowmodel<-0 # run snow version? (slower!)
-ystart<-1990
-yfinish<-2009
+ystart <- 1990# start year for weather generator calibration dataset or AWAP database
+yfinish <- 2009# end year for weather generator calibration dataset
 nyears<-yfinish-ystart+1# integer, number of years for which to run the microclimate model, only for AWAP data (!!max 10 years!!)
 
 ############# microclimate model parameters ################################
@@ -127,14 +137,14 @@ colnames(BD_spline)<-c('DEPTH','VALUE')
 BD<-merge(DEP2,BD_spline)
 BD<-c(BD[1,2],BD[,2])
   
-Thcond <- 2.5 # soil minerals thermal conductivity (W/mC)
-Density <- 2560. # soil minerals density (kg/m3)
-SpecHeat <- 870. # soil minerals specific heat (J/kg-K)
-BulkDensity <- 1300 # soil bulk density (kg/m3)
+Thcond <- rep(2.5,10) # soil minerals thermal conductivity (W/mC)
+Density <- rep(2560.,10) # soil minerals density (kg/m3)
+SpecHeat <- rep(870.,10) # soil minerals specific heat (J/kg-K)
+BulkDensity <- BD[seq(1,19,2)]*1000#rep(1360,10) # soil bulk density (kg/m3)
 cap<-1 # organic cap present on soil surface? (cap has lower conductivity - 0.2 W/mC - and higher specific heat 1920 J/kg-K)
-SatWater <- 0.26 # volumetric water content at saturation (0.1 bar matric potential) (m3/m3)
-Clay <- 20 # clay content for matric potential calculations (%)
-SoilMoist <- 0 # fractional soil moisture (decimal %)
+SatWater <- rep(0.26,10) # volumetric water content at saturation (0.1 bar matric potential) (m3/m3)
+Clay <- rep(22,10) # clay content for matric potential calculations (%)
+SoilMoist <- 0.2 # fractional soil moisture (decimal %)
 rainmult<-1 # rain multiplier for surface soil moisture (use to induce runoff), proportion
 runmoist<-1 # run soil moisture model (0=no, 1=yes)?
 SoilMoist_Init<-c(0.1,0.12,0.15,0.3,0.4,0.4,0.4,0.4,0.4,0.4) # initial soil water content, m3/m3
@@ -164,11 +174,12 @@ manualshade<-1 # if using soildata, which includes shade, this will override the
 Usrhyt <- 3# local height (cm) at which air temperature, relative humidity and wind speed calculatinos will be made 
 rainwet<-1.5 # mm rain that causes soil to become 90% wet
 snowtemp<-1.5 # temperature at which precipitation falls as snow (used for snow model)
-snowdens<-0.4 # snow density (mg/m3)
-snowmelt<-1. # proportion of calculated snowmelt that doesn't refreeze
-undercatch<-1. # undercatch multipier for converting rainfall to snow
-rainmelt<-0.016 # paramter in equation that melts snow with rainfall as a function of air temp
-write_input<-1 # write csv files of final input to working directory? 1=yes, 0=no.
+snowdens<-0.325 # snow density (mg/m3)
+densfun<-c(0.001369,0.1095) # slope and intercept of linear model of snow density as a function of day of year - if it is c(0,0) then fixed density used
+snowmelt<-0.9 # proportion of calculated snowmelt that doesn't refreeze
+undercatch<-1.0 # undercatch multipier for converting rainfall to snow
+rainmelt<-0.0125#85 # paramter in equation that melts snow with rainfall as a function of air temp, start with 0.0125
+write_input<-0 # write csv files of final input to working directory? 1=yes, 0=no.
 warm<-0 # uniform warming of air temperature input to simulate climate change
 loop<-0 # if doing multiple years, this shifts the starting year by the integer value
 
@@ -441,6 +452,7 @@ N_waste<-c(1,4/5,3/5,4/5) # chemical formula for nitrogenous waste product, CHON
 clutchsize<-2. # clutch size
 clutch_ab<-c(0,0) # paramters for relationship between length and clutch size: clutch size = a*SVL-b, make zero if fixed clutch size
 viviparous<-0 # 1=yes, 0=no
+minclutch<-0
 batch<-1 # invoke Pequerie et al.'s batch laying model?
 
 # the following four parameters apply if batch = 1, i.e. animal mobilizes
@@ -556,11 +568,11 @@ locustsub$date<-as.character(locustsub$DATE_,format="%Y-%m-%d")
 #locustsub$PERENnew[is.na(locustsub$Enew)==FALSE & is.na(locustsub$PERENnew)==TRUE] <- 0 # assume that if ephemerals are observed and no data for perennials, then no perennials
   
 nodestart<-4
-nodefinish<-9
+nodefinish<-8
 for(kk in nodestart:nodefinish){
   ##################### parameters:
   root_deep<-kk#6 # how deep do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
-  root_shallow<-3#kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
+  root_shallow<-kk-1#2#5 # how shallow do the roots go? 2 to 10, corresopnding to 1, 3, 5, 10, 20, 30, 60, 90 and 200 cm
   growth_delay<-1 # days after suitable soil moisture that new growth occurs
   wilting_thresh<-200*-1 # water potential for wilting point J/kg (divide by 100 to get bar)
   permanent_wilting_point<-1500*-1 # water potential for permanent wilting point (PWP) J/kg (divide by 100 to get bar)
